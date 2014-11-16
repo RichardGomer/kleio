@@ -33,9 +33,14 @@ At the moment, only the command line interface is implemented (an HTTP API is pl
 
 ```
 # Store a copy of a YouTube video
-php kleio.php store http://www.google.com/
+php kleio.php store https://www.youtube.com/watch?v=1NjTWvl8x-U
 
-php kleio.php retrieve http://
+# Get a list of all the stored representations of the video
+php kleio.php retrieve https://www.youtube.com/watch?v=1NjTWvl8x-U
+
+# Get one of the representations (by ID number) into out.mp4
+php kleio.php getblob 12 > out.mp4
+```
 
 
 ## Development
