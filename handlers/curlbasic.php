@@ -57,7 +57,8 @@ class CurlRequest
     public function getContentType()
     {
         $info = $this->getInfo();
-        return $info['content_type'];
+        $parts = explode(';', $info['content_type']);
+        return trim($parts[0]);
     }
 }
 

@@ -82,12 +82,15 @@ class Kleio
                 KLog::log('Use '.get_class($h['mod']).' for pattern '.$h['pattern']);
                 $handlers[] = $h['mod'];
             }
+            else
+            {
+                //KLog::log('Pattern '.$h['pattern'].' does not match '.$url);
+            }
         }
         
         // 2: Send a HEAD request to find the type and try finding handlers by type
         $cr = new CurlRequest($url);
-        $info = $cr->getInfo();
-        $ct = \strtolower($info['content_type']);
+        $ct = \strtolower($cr->getContentType());
         
         foreach($this->handlersByType as $h)
         {
@@ -109,6 +112,8 @@ class Kleio
      */
     public function store($url)
     {
+        Klog::clear();
+        
         $handlers = $this->getHandlers($url);
         
         // Run each handler to return Representation objects
@@ -127,7 +132,7 @@ class Kleio
             }
             catch(\Exception $e)
             {
-                KLog::log("Retrieval handler $i ".get_class($h)." failed");
+                KLog::log("Retrieval handler $i ".get_class($h)." failed: ".$e->getMessage());
             }
         }
         
@@ -137,8 +142,14 @@ class Kleio
         // and replacing the temporary blob on the Representation
         foreach($reps as $i=>$r)
         {
-            Klog::log("Process representation $i ".$r->getType());
+            if(!$r instanceof Representation)
+            {
+                KLog::log("Not a valid representation object :(");
+                continue;
+            }
             
+            Klog::log("Process representation $i ".$r->getType());
+
             try
             {
                 // Store the blob
@@ -157,6 +168,24 @@ class Kleio
             }
         }
         
+        try
+        {
+            KLog::log("Storing retrieval log");
+            $logrep = new Representation($url, 'text/x-kleiolog', time());
+            $logrep->setBlob(new Blob_Memory(implode("\n", KLog::get())));
+            
+            $id = \uniqid(date('YmdHis_'), true);
+            $blob = $this->getStorage()->store($id, $logrep->getBlob());
+            
+            $logrep->setBlob($blob);
+            
+            $this->getMetadata()->store($logrep);
+        }
+        catch (Exception $e)
+        {
+            Klog::log("Failed to store retrieval log: ".$e->getMessage());
+        }
+
         return $reps;
     }
 
