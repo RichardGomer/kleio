@@ -14,7 +14,7 @@ class RawHandler implements RetModule
         
         $type = $r->getContentType();
         
-        $rep = new Representation($url, $type, \time());
+        $rep = new Representation($url, $type, 'Raw Download', \time());
         
         $rep->setBlob(new Blob_Memory($r->getBody()));
         
@@ -22,6 +22,3 @@ class RawHandler implements RetModule
     }
 }
 
-
-
-?>

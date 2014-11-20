@@ -9,7 +9,8 @@ class KLog
     public static function log($string)
     {
         $trace = debug_backtrace();
-        $class = $trace[1]['class'];
+        
+        $class = count($trace) > 2 ? $trace[1]['class'] : '(main)';
         
         $class = str_replace('kleiostore\\', '', $class);
         

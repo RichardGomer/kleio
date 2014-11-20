@@ -17,10 +17,12 @@ class MetadataStore_Mysql implements MetadataStore
 <<<END
         CREATE TABLE IF NOT EXISTS `kleiometa` (
               `RepresentationID` int(11) NOT NULL,
+              `Status` tinyint(2) NOT NULL,
               `URLHash` varchar(64) NOT NULL,
               `Type` varchar(30) NOT NULL,
+              `Title` varchar(60) NOT NULL,
               `Time` int(11) NOT NULL,
-              `BlobID` varchar(255) NOT NULL,
+              `BlobID` varchar(255) NULL,
               `URL` text NOT NULL
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ; 
                 
@@ -69,6 +71,19 @@ END
         return $out;
     }
     
+    public function getRepresentationsByType($type)
+    {
+        $res = $this->conn->query("SELECT * FROM `kleiometa` WHERE `Type`=\"$type\" ORDER BY Time DESC");
+        
+        $out = array();
+        while(($row = $res->fetch(\PDO::FETCH_ASSOC)) !== false)
+        {
+            $out[] = $this->row2rep($row);
+        }
+       
+        return $out;
+    }
+    
     /**
      * Convert a row from a database query into a Representation object
      * @param type $row
@@ -76,8 +91,10 @@ END
      */
     private function row2rep($row)
     {
-        $rep = new Representation($row['URL'], $row['Type'], $row['Time'], $row['RepresentationID']);
-        $rep->setBlobID($row['BlobID']);
+        $rep = new Representation($row['URL'], $row['Type'], $row['Title'], $row['Time'], $row['Status'], $row['RepresentationID']);
+        
+        if($row['BlobID'] !== null)
+            $rep->setBlobID($row['BlobID']);
         
         return $rep;
     }
@@ -94,39 +111,67 @@ END
     }
 
     public function store(Representation $r)
-    {
-        if($r->getID() !== false)
-        {
-            throw new CannotStoreRepresentationException("Cannot store a representation that has already been stored, ID MUST be unset");
-        }
-        
+    {        
         $b = $r->getBlob();
-        
-        if(!$b instanceof PersistentBlob)
+
+        if($b == null)
         {
-            throw new CannotStoreRepresentationException("Cannot store representation unless blob is persistent");
+            $bid = null;
         }
-        
-        $bid = $b->getID();
+        else
+        {
+            if(!$b instanceof PersistentBlob)
+            {
+                throw new CannotStoreRepresentationException("Cannot store representation unless blob is persistent");
+            }
+            
+            $bid = $b->getID();
+        }
         
         $hash = \hash('sha256', $r->getURL());
         
-        $q = $this->conn->prepare('INSERT INTO `kleiometa`(URLHash, Type, Time, BlobID, URL) VALUES(:hash, :type, :time, :blobid, :url)');
-        
-        $fields = array(
-            ':hash' => $hash,
-            ':type' => $r->getType(),
-            ':time' => $r->getTime(),
-            ':blobid' => $bid,
-            ':url' => $r->getURL()
-        );
-        
-        KLog::log("Store metadata ".implode(' ', $fields));
-        
-        $q->execute($fields);
-        
-        $rid = $this->conn->lastInsertID();
-        $r->setID($rid);
+        // New representations
+        if($r->getID() === false)
+        {
+            $q = $this->conn->prepare('INSERT INTO `kleiometa`(URLHash, Status, Type, Title, Time, BlobID, URL) VALUES(:hash, :status, :type, :title, :time, :blobid, :url)');
+
+            $fields = array(
+                ':hash' => $hash,
+                ':status' => $r->getStatus(),
+                ':type' => $r->getType(),
+                ':title' => $r->getTitle(),
+                ':time' => $r->getTime(),
+                ':blobid' => $bid,
+                ':url' => $r->getURL()
+            );
+
+            KLog::log("Store new metadata ".implode(' ', $fields));
+
+            $q->execute($fields);
+            
+            $rid = $this->conn->lastInsertID();
+            $r->setID($rid);
+        }
+        // Updates
+        else
+        {
+            $q = $this->conn->prepare('UPDATE `kleiometa` SET URLHash=:hash, Status=:status, Type=:type, Title=:title, Time=:time, BlobID=:blobid, URL=:url WHERE RepresentationID=:id');
+
+            $fields = array(
+                ':hash' => $hash,
+                ':status' => $r->getStatus(),
+                ':type' => $r->getType(),
+                ':title' => $r->getTitle(),
+                ':time' => $r->getTime(),
+                ':blobid' => $bid,
+                ':url' => $r->getURL(),
+                ':id' => $r->getID()
+            );
+
+            KLog::log("Store updated metadata ".implode(' ', $fields));
+
+            $q->execute($fields);
+        }
         
         // Clear the URL from the cache if necessary, since it now has a new representation!
         if(\array_key_exists($hash, $this->urlcache))

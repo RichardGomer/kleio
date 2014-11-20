@@ -46,6 +46,7 @@ require('core/rep.class.php');
 require('core/storedobject.class.php');
 require('handlers/curlbasic.php'); // This is used by core
 require('core/core.class.php');
+require('core/async.class.php');
 
 require('modules/metadata_mysql.class.php');
 require('modules/storage_s3.class.php');
@@ -54,11 +55,12 @@ require('handlers/raw.php');
 require('handlers/wkhtmltopdf.php');
 require('handlers/phantomjs.php');
 require('handlers/youtubedl.php');
+require('handlers/slidesharedl.php');
 
 $store = new StorageS3($bucket, $access, $secret);
 $meta = new MetadataStore_Mysql(new \PDO("mysql:host=$dbhost;dbname=$dbname;charset=utf8", $dbuser, $dbpass));
 
-$kleio = new Kleio($store, $meta);
+$kleio = new KleioAsync($store, $meta);
 
 // Default handler
 $kleio->addHandlerByPattern('/.*/', new RawHandler());
@@ -69,3 +71,8 @@ $kleio->addHandlerByType(array('text/html', 'application/xhtml+xml'), new phanto
 
 // YouTube (and other video) handler provides a helper function to register supported URL patterns
 youtubedl::registerHandler(new youtubedl(), $kleio);
+
+// Slideshare to PDF converter
+$kleio->addHandlerByPattern('@https?://(www.)?slideshare\.net/.+/.+@i', new slidesharedl());
+
+

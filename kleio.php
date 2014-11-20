@@ -9,23 +9,50 @@ require('setup.php');
 
 kleiostore\KLog::enablePrint();
 
-$usage = "USAGE: php kleio.php <action> <url/id>\nActions: store, retrieve, getblob\n";
+$usage = "USAGE: php kleio.php <action> [url/id]\nActions: enqueue, dequeue*, store, get, blob\n* does not require url/ID";
 
-if($argc < 3)
+$action = $argv[1];
+
+if($argc < 2)
 {
     echo $usage;
     exit;
 }
 
-$action = $argv[1];
-$url = $argv[2];
+if($action != 'dequeue')
+{
+    if($argc < 3)
+    {
+        echo $usage;
+        exit;
+    }
+    
+    $url = $argv[2];
+}
+else // Dequeue XD
+{
+    kleiostore\KLog::log("Begin dequeue");
+    
+    while($kleio->hasQueue())
+    {
+        $kleio->dequeue();
+    }
+    
+    kleiostore\KLog::log("Queue is empty");
+    exit;
+}
 
 switch($action)
 {
+    case 'enqueue':
+        $kleio->enqueue($url);
+        break;
+    
     case 'store':
         $kleio->store($url);
         break;
     
+    case 'get':
     case 'retrieve':
         try
         {
@@ -36,13 +63,26 @@ switch($action)
             
             echo "Found $n representations:\n";
             
+            $lasttime = 0;
             foreach($reps as $r)
             {
-                $type = $r->getType();
-                $time = date('Y-m-d H:i', $r->getTime());
+                $time = $r->getTime();
+                if($lasttime != $time)
+                {
+                    $time = str_pad(date('Y-m-d H:i', $r->getTime()), 20);
+                }
+                else
+                {
+                    $time = str_pad("", 20);
+                }
+                
+                $lasttime = $r->getTime();
+                
+                $type = str_pad($r->getType(), 25);
+                $title = str_pad($r->getTitle(), 35);
                 $id = $r->getID();
                 
-                echo "  $time \t$type \t$id\n";
+                echo "  $time $title $type $id\n";
             }
         }
         catch(\kleiostore\NoStoredRepresentationException $e)
@@ -51,6 +91,7 @@ switch($action)
         }
         break;
         
+    case 'blob':
     case 'getblob':
         try
         {

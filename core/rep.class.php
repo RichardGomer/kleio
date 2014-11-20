@@ -15,7 +15,11 @@ class Representation
     private $blob = null;
     private $blobid = false;
     
-    public function __construct($url, $type, $time, $id=false)
+    const PENDING = 1;
+    const FAILED = 2;
+    const STORED = 4;
+    
+    public function __construct($url, $type, $title, $time, $status=self::PENDING, $id=false)
     {
         if(!preg_match('@.+/.*@', $type))
         {
@@ -24,8 +28,10 @@ class Representation
         
         $this->url = $url;
         $this->time = $time;
+        $this->title = $title;
         $this->type = $type;
         $this->id = $id;
+        $this->status = $status;
     }
     
     /**
@@ -60,9 +66,29 @@ class Representation
         return $this->type;
     }
     
+    public function setType($type)
+    {
+        $this->type = $type;
+    }
+    
     public function getTime()
     {
         return $this->time;
+    }
+    
+    public function setTime($time)
+    {
+        $this->time = $time;
+    }
+    
+    public function getTitle()
+    {
+        return $this->title;
+    }
+    
+    public function getStatus()
+    {
+        return $this->status;
     }
     
     public function setBlob(Blob $blob)
@@ -75,6 +101,12 @@ class Representation
     {
         $this->blobid = $blobID;
         $this->blob = null;
+        
+        // When a persistent blob is added, this representation is ready :)
+        if($blobID !== null && $blobID !== false)
+        {
+            $this->status = self::STORED;
+        }
     }
     
     public function getBlob(Kleio $store=null)
@@ -94,7 +126,7 @@ class Representation
         }
         else
         {
-            return false;
+            return null;
         }
     }
 }

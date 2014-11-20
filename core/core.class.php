@@ -104,6 +104,8 @@ class Kleio
         return $handlers;
     }
     
+
+    
     /**
      * Store representations of the given URL
      * 
@@ -113,6 +115,10 @@ class Kleio
     public function store($url)
     {
         Klog::clear();
+        
+        $time = time();
+        
+        Klog::log("Store $url");
         
         $handlers = $this->getHandlers($url);
         
@@ -142,37 +148,57 @@ class Kleio
         // and replacing the temporary blob on the Representation
         foreach($reps as $i=>$r)
         {
-            if(!$r instanceof Representation)
-            {
-                KLog::log("Not a valid representation object :(");
-                continue;
-            }
+            $r->setTime($time); // Set the timestamp so all the representations match!
             
-            Klog::log("Process representation $i ".$r->getType());
-
-            try
-            {
-                // Store the blob
-                $id = \uniqid(date('YmdHis_'), true);
-                $blob = $this->getStorage()->store($id, $r->getBlob());
-
-                // Put the new blob on to the representation
-                $r->setBlob($blob);
-
-                // Store the representation
-                $this->getMetadata()->store($r);
-            }
-            catch(\Exception $e)
-            {
-                KLog::log("Failed to store representation $i ".$r->getType());
-            }
+            $this->storeRep($r);
         }
         
+        $this->storeLog($url, $time);
+
+        return $reps;
+    }
+    
+    /**
+     * Store a representation (including the blob)
+     */
+    protected function storeRep(Representation $r)
+    {
+        if(!$r instanceof Representation)
+        {
+            KLog::log("Not a valid representation object :(");
+            return;
+        }
+
+        Klog::log("Process representation ".$r->getType());
+
+        try
+        {
+            // Store the blob
+            $id = \uniqid(date('YmdHis_'), true);
+            $blob = $this->getStorage()->store($id, $r->getBlob());
+
+            // Put the new blob on to the representation
+            $r->setBlob($blob);
+
+            // Store the representation
+            $this->getMetadata()->store($r);
+        }
+        catch(\Exception $e)
+        {
+            KLog::log("Failed to store representation ".$r->getType().": ".$e->getMessage());
+        }
+    }
+
+    /**
+     * Store the contents of KLog against the givne URL & time
+     */
+    protected function storeLog($url, $time)
+    {
         try
         {
             KLog::log("Storing retrieval log");
-            $logrep = new Representation($url, 'text/x-kleiolog', time());
-            $logrep->setBlob(new Blob_Memory(implode("\n", KLog::get())));
+            $logrep = new Representation($url, 'text/x-kleiolog', 'Archival Log', $time);
+            $logrep->setBlob(new Blob_Memory(implode("\n", KLog::get())."\n"));
             
             $id = \uniqid(date('YmdHis_'), true);
             $blob = $this->getStorage()->store($id, $logrep->getBlob());
@@ -185,8 +211,6 @@ class Kleio
         {
             Klog::log("Failed to store retrieval log: ".$e->getMessage());
         }
-
-        return $reps;
     }
 
     /**

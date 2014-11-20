@@ -28,7 +28,7 @@ class youtubedl implements RetModule
         KLog::log($cmd);
         exec($cmd);
         
-        $rep = new Representation($url, 'video/mp4', \time());
+        $rep = new Representation($url, 'video/mp4', 'Video', \time());
         $rep->setBlob(new Blob_Disk($name));
         
         return array($rep);

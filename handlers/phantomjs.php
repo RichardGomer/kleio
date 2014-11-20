@@ -30,10 +30,10 @@ class phantomjs implements RetModule
         KLog::log($cmd);
         KLog::log(exec($cmd));
         
-        $rep_pdf = new Representation($url, 'application/pdf', \time());
+        $rep_pdf = new Representation($url, 'application/pdf', 'Webpage Snapshot', \time());
         $rep_pdf->setBlob(new Blob_Disk($name_pdf));
         
-        $rep_png = new Representation($url, 'image/png', \time());
+        $rep_png = new Representation($url, 'image/png', 'Webpage Snapshot', \time());
         $rep_png->setBlob(new Blob_Disk($name_png));
         
         return array($rep_pdf, $rep_png);

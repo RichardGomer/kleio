@@ -20,6 +20,13 @@ interface MetadataStore
     public function getRepresentations($url);
     
     /**
+     * Get metadata records by content type
+     * 
+     * Typically used to retrieve control representations like enqueued URLs
+     */
+    public function getRepresentationsByType($type);
+    
+    /**
      * Create a new record for the given URL
      */
     public function store(Representation $r);
