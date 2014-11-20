@@ -16,7 +16,8 @@ archived as mp4.
 KleioStore is written PHP, and requires the curl module.
 
 The HTML to PDF/PNG converter requires *phantomjs* to be installed (http://www.phantomjs.org/)
-The YouTube (And other video site) archiver requires *youtube-dl* to be installed (rg3.github.io/youtube-dl/)
+The YouTube (And other video site) archiver requires *youtube-dl* to be installed (http://rg3.github.io/youtube-dl/)
+The HTTP API is implemented on top of QuAPI (http://www.github.com/richardgomer/quapi) which needs to be included in index.php
 
 
 ## Setup
