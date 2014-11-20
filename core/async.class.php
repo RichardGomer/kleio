@@ -31,7 +31,7 @@ class KleioAsync extends Kleio
     {
         try
         {
-            $ob = $this->get($url);
+            $ob = $this->get($url, false);
         }
         catch(NoStoredRepresentationException $e)
         {
@@ -43,7 +43,7 @@ class KleioAsync extends Kleio
         
         foreach($reps as $r)
         {
-            Klog::log("Found rep with type {$r->getType()})");
+            Klog::log("Found rep with type {$r->getType()}");
             
             if($r->getType() === 'x-kleio/queue' || $r->getType() === 'x-kleio/queue-in-progress')
             {
@@ -91,5 +91,30 @@ class KleioAsync extends Kleio
         // Update the representation
         $next->setType('x-kleio/queue-complete');
         $this->getMetadata()->store($next);
+    }
+    
+    /**
+     * Filter queue representations from the list of stored reps!
+     */
+    public function get($url, $filter=true)
+    {
+        $res = parent::get($url);
+        
+        if(!$filter)
+        {
+            return $res;
+        }
+        
+        $ob = new StoredObject($url);
+        
+        foreach($res->getReps() as $r)
+        {
+            if(!preg_match('@^x-kleio/@i', $r->getType()))
+            {
+                $ob->addRep($r);
+            }
+        }
+        
+        return $ob;
     }
 }

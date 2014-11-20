@@ -29,18 +29,35 @@ Create a new S3 bucket and a blank MySQL database and then fill in S3/MySQL cred
 
 ## Usage
 
-At the moment, only the command line interface is implemented (an HTTP API is planned).
+###Command Line
 
 ```
 # Store a copy of a YouTube video
 php kleio.php store https://www.youtube.com/watch?v=1NjTWvl8x-U
 
+# OR: Queue it up for later...
+php kleio.php enqueue https://www.youtube.com/watch?v=1NjTWvl8x-U
+
+# ...and then later archive everything in the queue
+php kleio.php dequeue
+
 # Get a list of all the stored representations of the video
-php kleio.php retrieve https://www.youtube.com/watch?v=1NjTWvl8x-U
+php kleio.php get https://www.youtube.com/watch?v=1NjTWvl8x-U
 
 # Get one of the representations (by ID number) into out.mp4
 php kleio.php getblob 12 > out.mp4
 ```
+
+###Over HTTP
+
+Queue http://www.bbc.co.uk/ for archival: `http://server/kleio/index.php?store&url=http://www.bbc.co.uk/`
+
+Retrieve a list of representations of bbc.co.uk: `http://server/kleio/index.php?get&url=http://www.bbc.co.uk` (includes links to the blobs themselves)
+
+Check queue statistics: `http://server/kleio/index.php?queue`
+
+NB: You need to run the the dequeue operation from a CRON job or similar to process items added to the queue by the API.  
+Synchronous archival is not supported via the API because it typically takes too long.
 
 
 ## Development

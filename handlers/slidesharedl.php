@@ -17,7 +17,7 @@ class slidesharedl implements RetModule
         
         $wd = getcwd();
         chdir(dirname(__FILE__));
-        $cmd = './slidesharedl '.\escapeshellarg($surl).' -o '.$name;
+        $cmd = 'bash slidesharedl '.\escapeshellarg($surl).' -o '.$name;
         KLog::log($cmd);
         exec($cmd);
         chdir($wd);
