@@ -95,13 +95,26 @@ class StatusHandler extends KleioAPIHandler
         {
             $res['queued'] = true;
         }
+        else
+        {
+            $res['queued'] = false;
+        }
         
         try
         {
             $ob = $this->kleio->get($url); // KleioAsync flters out control representations for us :)
             
-            $res['stored'] = true;
-            $res['reps'] = $ob->getReps();
+            $reps = $ob->getReps();
+            
+            if(count($reps) > 0)
+            {
+                $res['stored'] = true;
+                $res['reps'] = $reps;
+            }
+            else
+            {
+                $res['stored'] = false;
+            }
         }
         catch (NoStoredRepresentationException $e)
         {
