@@ -13,6 +13,43 @@ use QuickAPI as API;
 
 $api = new API\API(array_merge($_GET, $_POST), 'op');
 
+/**
+ * The security model allows anyone to query for a particular URL, but requires
+ * a valid secret for any other operation (queue status, enqueing).  See
+ * the $apisecrets setting in config.php to set up secrets.  The user argument is
+ * ignored (but must be set to something!) and the pass must be a valid secret
+ */
+class KleioAPIAuth implements API\APIAuth
+{
+    public function __construct($secrets)
+    {
+        $this->secrets = $secrets;
+    }
+    
+    public function checkCredentials($un, $pass, API\APIHandler $handler)
+    {
+        if($handler instanceof StatusHandler || $handler instanceof BlobHandler)
+        {
+            return true;
+        }
+        else
+        {
+            $hash = hash('sha256', $pass);
+            foreach($this->secrets as $s)
+            {
+                if($s === $hash)
+                    return true;
+            }
+            
+            return false;
+        }
+    }
+}
+
+if($apisecrets !== false)
+    $api->addAuth(new KleioAPIAuth($apisecrets));
+
+
 abstract class KleioAPIHandler implements API\APIHandler
 {
     protected $kleio;
@@ -63,11 +100,12 @@ class StatusHandler extends KleioAPIHandler
         {
             $ob = $this->kleio->get($url); // KleioAsync flters out control representations for us :)
             
+            $res['stored'] = true;
             $res['reps'] = $ob->getReps();
         }
-        catch (kleiostore\NoStoredRepresentationException $e)
+        catch (NoStoredRepresentationException $e)
         {
-            $res[]['stored'] = false;
+            $res['stored'] = false;
         }
         
         return $res;
@@ -103,6 +141,11 @@ $api->addOperation(false, array('blob'), new BlobHandler($kleio));
 
 class RepConverter implements API\APIResultHandler
 {
+    public function __construct(Kleio $kleio)
+    {
+        $this->kleio = $kleio;
+    }
+    
     public function prepareResult($rep)
     {
         $out = array(
@@ -111,7 +154,7 @@ class RepConverter implements API\APIResultHandler
             'url' => $rep->getURL(),
         );
         
-        if($rep->getBlob() instanceof PersistentBlob)
+        if($rep->getBlob($this->kleio) instanceof PersistentBlob)
         {
             $out['blob'] = (empty($_SERVER['HTTPS']) ? 'http' : 'https').'://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?blob='.$rep->getID();
         }
@@ -150,7 +193,7 @@ class QueueStatusHandler extends KleioAPIHandler
 $api->addOperation(false, array('queue'), new QueueStatusHandler($kleio));
 
 
-$api->registerResultHandler('kleiostore\Representation',  new RepConverter());
+$api->registerResultHandler('kleiostore\Representation',  new RepConverter($kleio));
 
 $api->handle();
 

@@ -22,6 +22,13 @@ if(!file_exists('config.php'))
 \$dbuser = 'kleio';
 \$dbpass = 'CHANGEME';
             
+// API secrets
+// A list of secrets that can be used to access the API
+// The values here are the sha256 hashes of the actual secrets
+\$apisecrets = array(
+'3617113835cc4f0d9b19ca51196117706c5f4c24068c6663d67599d985c41ff6' // = xyQK24wJoKPlC0SWAc Change this!
+);
+            
 END
             );
     

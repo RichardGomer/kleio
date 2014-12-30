@@ -27,6 +27,9 @@ file called config.php and then exits.
 
 Create a new S3 bucket and a blank MySQL database and then fill in S3/MySQL credentials in config.php
 
+The API requires a secret to be supplied (in the pass URL argument) for most operations. These secrets must be set up
+in config.php - The strings listed are sha256 hashes of the secrets that clients will provide.  To disable authentication,
+just set $apisecrets to false.
 
 ## Usage
 

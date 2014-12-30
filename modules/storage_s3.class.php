@@ -15,7 +15,15 @@ class StorageS3 implements Storage
         $this->s3->setExceptions(true);
     }
     
+    /**
+     * Returns an S3 blob that will retrieve data on-demand
+     */
     public function get($id)
+    {
+        return new BlobS3($id, $this);
+    }
+    
+    public function getData($id)
     {
         $ob = $this->s3->getObject($this->bucket, $id);
         
@@ -24,9 +32,12 @@ class StorageS3 implements Storage
             throw new S3RetrievalException("Could not retrieve $id from S3");
         }
         
-        return new BlobS3($id, $ob->body);
+        return $ob->body;
     }
 
+    /**
+     * Returns a pre-filled S3 blob
+     */
     public function store($id, Blob $data)
     {
         $res = $this->s3->putObject($data->getBinaryData(), $this->bucket, $id);
@@ -38,16 +49,21 @@ class StorageS3 implements Storage
         
         Klog::log("Stored blob $id in S3[{$this->bucket}]");
         
-        return new BlobS3($id, $data->getBinaryData());
+        return new BlobS3($id, $this, $data->getBinaryData());
     }
 
 }
 
+/**
+ * This blob only actually gets the data from S3 when it's requested, so just instantiating
+ * instances is not very resource intensive
+ */
 class BlobS3 implements PersistentBlob
 {
-    public function __construct($id, $data)
+    public function __construct($id, StorageS3 $store, $data=false)
     {
         $this->data = $data;
+        $this->store = $store;
         $this->id = $id;
     }
     
@@ -58,6 +74,13 @@ class BlobS3 implements PersistentBlob
 
     public function getBinaryData()
     {
+        if($this->data !== false)
+        {
+            return $this->data;
+        }
+        
+        $this->data = $this->store->getData($this->id);
+        
         return $this->data;
     }
 
