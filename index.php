@@ -163,6 +163,7 @@ class RepConverter implements API\APIResultHandler
     {
         $out = array(
             'type' => $rep->getType(),
+            'title' => $rep->getTitle(),
             'time' => $rep->getTime(),
             'url' => $rep->getURL(),
         );

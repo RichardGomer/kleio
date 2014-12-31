@@ -40,7 +40,24 @@ class StorageS3 implements Storage
      */
     public function store($id, Blob $data)
     {
-        $res = $this->s3->putObject($data->getBinaryData(), $this->bucket, $id);
+        $tries = 0;
+        do
+        {
+            try
+            {
+                $tries++;
+                $res = $this->s3->putObject($data->getBinaryData(), $this->bucket, $id);
+                break;
+            }
+            catch(\Exception $e)
+            {
+                if($tries > 2)
+                {
+                    throw $e;
+                }
+            }
+        }
+        while(true);
 
         if(!$res)
         {
