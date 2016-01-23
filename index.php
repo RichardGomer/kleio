@@ -6,7 +6,7 @@
 
 namespace kleiostore;
 
-require(dirname(__FILE__).'/../quapi/api.lib.php');
+require(dirname(__FILE__).'/quapi/api.lib.php');
 require 'setup.php';
 
 use QuickAPI as API;
